@@ -1431,6 +1431,15 @@ void getosd(unsigned char *osd, int *xres, int *yres)
 		return;
 	}
 
+	// --- TNAP fix: honor the framebuffer page flip (double-buffered OSD) ---
+	// enigma2 page-flips by panning the display via var.yoffset. The mmap base
+	// is the start of video memory (page 0); after a flip the VISIBLE page sits
+	// at yoffset (e.g. 1080 on a 1920x2160 virtual fb). Reading from the base
+	// then returns the hidden back buffer -> stale/mixed grabs. Advance lfb to
+	// the page currently on screen so every bit-depth path below reads it.
+	// (lfb is never munmap'd, so adjusting it in place is safe.)
+	lfb += (unsigned long)var_screeninfo.yoffset * fix_screeninfo.line_length;
+
 	if ( var_screeninfo.bits_per_pixel == 32 )
 	{
 		if (!quiet)
